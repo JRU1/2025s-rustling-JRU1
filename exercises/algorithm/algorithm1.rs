@@ -1,8 +1,7 @@
 /*
-	single linked list merge
-	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
+    single linked list merge
+    This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
@@ -16,10 +15,7 @@ struct Node<T> {
 
 impl<T> Node<T> {
     fn new(t: T) -> Node<T> {
-        Node {
-            val: t,
-            next: None,
-        }
+        Node { val: t, next: None }
     }
 }
 #[derive(Debug)]
@@ -70,13 +66,53 @@ impl<T> LinkedList<T> {
         }
     }
     pub fn merge(list_a: LinkedList<T>, list_b: LinkedList<T>) -> Self
+    where
+        T: std::cmp::PartialOrd,
     {
-        //TODO
-        Self {
-            length: 0,
-            start: None,
-            end: None,
+        let mut merged = LinkedList::new();
+
+        // 封装获取节点值和移动节点的逻辑, 最小化 unsafe
+        let get_val = |node_ptr: NonNull<Node<T>>| unsafe { &(*node_ptr.as_ptr()).val };
+        let take_next = |node_ptr: NonNull<Node<T>>| unsafe {
+            let next = (*node_ptr.as_ptr()).next;
+            let val = std::ptr::read(&(*node_ptr.as_ptr()).val);
+            (val, next)
+        };
+
+        // 获取 a, b 的头指针作为开始
+        let mut a_ptr = list_a.start;
+        let mut b_ptr = list_b.start;
+
+        // 开始循环
+        while let (Some(a_node), Some(b_node)) = (a_ptr, b_ptr) {
+            // 获取 a, b 当前指针的值作比较, 选择先推入哪一个, 同时更新对应的指针
+            if get_val(a_node) <= get_val(b_node) {
+                // 这里直接获取值
+                let (val, next) = take_next(a_node);
+                // 使用提供的函数
+                merged.add(val);
+                a_ptr = next;
+            } else {
+                let (val, next) = take_next(b_node);
+                merged.add(val);
+                b_ptr = next;
+            }
         }
+
+        // 处理剩余节点
+        let mut process_remaining = |mut ptr| {
+            while let Some(node) = ptr {
+                let (val, next) = take_next(node);
+                merged.add(val);
+                ptr = next;
+            }
+        };
+
+        // 循环 a, b 剩余的内容
+        process_remaining(a_ptr);
+        process_remaining(b_ptr);
+
+        merged
     }
 }
 
